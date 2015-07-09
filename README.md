@@ -16,3 +16,10 @@ The output is `IMAGE.LAYER.jpg`.
 
 `bash layers.sh IMAGE.jpg` runs the Deep Dream algorithm for a given image, for each layer of the neural network.
 Images with alpha channel are not allowed.
+
+## Forking
+
+If you fork this, you'll have to change it to point to your fork at TWO places:
+
+1. In `readme.sh`: `https://raw.githubusercontent.com/danielvarga/deepdream-aws`
+2. In `setup.sh`: `git@github.com:danielvarga/deepdream-aws.git`

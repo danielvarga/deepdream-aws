@@ -17,6 +17,7 @@ pem=~/.ssh/reuse-elasticsearch.pem
 
 # Change 'danielvarga' so that this points to your fork:
 ssh -i $pem ubuntu@$dns wget https://raw.githubusercontent.com/danielvarga/deepdream-aws/master/setup.sh
+# Also, in your fork, change the git SSH URL in setup.sh to point to your fork.
 
 ssh -i $pem ubuntu@$dns bash setup.sh
 # ...wait some, and then:

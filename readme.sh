@@ -15,4 +15,7 @@ dns=ec2-54-158-172-169.compute-1.amazonaws.com
 ssh -i ~/.ssh/reuse-elasticsearch.pem ubuntu@$dns wget https://raw.githubusercontent.com/danielvarga/deepdream-aws/master/setup.sh
 ssh -i ~/.ssh/reuse-elasticsearch.pem ubuntu@$dns bash setup.sh
 # ...wait some, and then:
-scp -i ~/.ssh/reuse-elasticsearch.pem ubuntu@$dns:./deepdream-aws/daniel.inception_3a-3x3.jpg .
+scp -i ~/.ssh/reuse-elasticsearch.pem ubuntu@$dns:./deepdream-aws/daniel.conv2-3x3_reduce.jpg .
+# ...wait a lot, and then:
+mkdir daniel
+scp -i ~/.ssh/reuse-elasticsearch.pem ubuntu@$dns:./deepdream-aws/daniel.*.jpg daniel/

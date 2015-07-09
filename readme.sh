@@ -11,11 +11,15 @@ open https://console.aws.amazon.com/ec2/v2/home?region=us-east-1#LaunchInstanceW
 # Wait until fulfilled. Click on instance. Check public DNS.
 
 dns=ec2-54-158-172-169.compute-1.amazonaws.com
+pem=~/.ssh/reuse-elasticsearch.pem
+# Don't forget to chmod go-rwx $pem
 
-ssh -i ~/.ssh/reuse-elasticsearch.pem ubuntu@$dns wget https://raw.githubusercontent.com/danielvarga/deepdream-aws/master/setup.sh
-ssh -i ~/.ssh/reuse-elasticsearch.pem ubuntu@$dns bash setup.sh
+# Change 'danielvarga' so that this points to your fork:
+ssh -i $pem ubuntu@$dns wget https://raw.githubusercontent.com/danielvarga/deepdream-aws/master/setup.sh
+
+ssh -i $pem ubuntu@$dns bash setup.sh
 # ...wait some, and then:
-scp -i ~/.ssh/reuse-elasticsearch.pem ubuntu@$dns:./deepdream-aws/daniel.conv2-3x3_reduce.jpg .
+scp -i $pem ubuntu@$dns:./deepdream-aws/daniel.conv2-3x3_reduce.jpg .
 # ...wait a lot, and then:
 mkdir daniel
-scp -i ~/.ssh/reuse-elasticsearch.pem ubuntu@$dns:./deepdream-aws/daniel.*.jpg daniel/
+scp -i $pem ubuntu@$dns:./deepdream-aws/daniel.*.jpg daniel/

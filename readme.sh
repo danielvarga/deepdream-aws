@@ -1,3 +1,4 @@
+# According to http://blog.titocosta.com/post/110345699197/public-ec2-ami-with-torch-and-caffe-deep-learning
 open https://console.aws.amazon.com/ec2/v2/home?region=us-east-1#LaunchInstanceWizard:ami=ami-ffba7b94
 # pick g2.2xlarge
 # Request Spot Instances

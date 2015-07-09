@@ -2,7 +2,8 @@
 
 img=$1
 
-cat caffe/models/bvlc_googlenet/deploy.prototxt | grep " name" | awk '{ print $2 }' | tr -d '"' > layers.txt
+# relu layers are calculated in-place, so we can't use them.
+cat caffe/models/bvlc_googlenet/deploy.prototxt | grep " name" | awk '{ print $2 }' | tr -d '"' | grep -v relu > layers.txt
 
 cat layers.txt | while read layer
 do

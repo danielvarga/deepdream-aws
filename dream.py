@@ -22,6 +22,15 @@ def deprocess(net, img):
     m = 110.0
     return np.dstack((img + m)[::-1])
 
+def smoothed(img, sigma=5):
+    # This is not correct, it smoothes between colors, so turns it into grayscale:
+    # But we are fine with that in this application.
+    vis = nd.gaussian_filter(img, sigma=sigma)
+
+    # This would be the correct way:
+    # vis = np.concatenate([nd.gaussian_filter(img[...,x,np.newaxis], sigma=sigma) for x in xrange(img.shape[2])], axis=2)
+    return vis
+
 def make_step(net, step_size=1.5, end='inception_4c/output', jitter=32, clip=True, shift=True, mask=None):
     '''Basic gradient ascent step.'''
 
@@ -41,7 +50,17 @@ def make_step(net, step_size=1.5, end='inception_4c/output', jitter=32, clip=Tru
 
     # apply normalized ascent step to the input image
     if mask is not None:
-        src.data[:] += step_size/np.abs(g).mean() * g * (1*(mask<0))
+	factor = (1.0*(mask<0))
+#	print factor.shape,
+	factor[:] = smoothed(factor[0], sigma=10)
+	factor += 0.3
+#	print factor.shape
+#	print factor[0,::20,::20]
+#	import sys
+#	sys.exit()
+#	vis = deprocess(net, 128.0*factor[:,::10,::10])
+#	saveImage(vis, "tmp_factor.jpg")
+	src.data[:] += step_size/np.abs(g).mean() * g * factor
     else :
         src.data[:] += step_size/np.abs(g).mean() * g
 
@@ -107,9 +126,10 @@ def main():
     img = np.float32(PIL.Image.open(inImageFilename))
     try:
 	dumbPath = inImageFilename.split("/")
-	maskImageFilename = "/".join(dumbPath[:-1])+"/mask_"+dumbPath[-1]
+	maskImageFilename = "/".join(dumbPath[:-1]+["mask_"+dumbPath[-1]])
+	print maskImageFilename
 	mask_img = np.float32(PIL.Image.open(maskImageFilename))
-	assert base_img.shape==mask_img.shape, "Input image and mask differ in size or color channel count." 
+	assert img.shape==mask_img.shape, "Input image and mask differ in size or color channel count." 
     except:
 	print "Mask file not found, no masking."
 	mask_img = None

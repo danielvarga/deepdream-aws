@@ -25,3 +25,10 @@ scp -i $pem ubuntu@$dns:./deepdream-aws/daniel.conv2-3x3_reduce.jpg .
 # ...wait a lot, and then:
 mkdir daniel
 scp -i $pem ubuntu@$dns:./deepdream-aws/daniel.*.jpg daniel/
+
+#####################
+
+# dream.py supports masking: if you run it on a file f.jpg, and the
+# program finds a mask file mask_f.jpg in its directory, then it won't change the
+# pixels that are white on the mask. The mask must be of the same size, and
+# must not be greyscale.

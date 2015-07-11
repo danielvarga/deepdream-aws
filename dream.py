@@ -22,38 +22,59 @@ def deprocess(net, img):
     m = 110.0
     return np.dstack((img + m)[::-1])
 
-def make_step(net, step_size=1.5, end='inception_4c/output', jitter=32, clip=True):
+def make_step(net, step_size=1.5, end='inception_4c/output', jitter=32, clip=True, shift=True, mask=None):
     '''Basic gradient ascent step.'''
 
     src = net.blobs['data'] # input image is stored in Net's 'data' blob
     dst = net.blobs[end]
 
-    ox, oy = np.random.randint(-jitter, jitter+1, 2)
-    src.data[0] = np.roll(np.roll(src.data[0], ox, -1), oy, -2) # apply jitter shift
+    if shift:
+	ox, oy = np.random.randint(-jitter, jitter+1, 2)
+	src.data[0] = np.roll(np.roll(src.data[0], ox, -1), oy, -2) # apply jitter shift
+	mask = np.roll(np.roll(mask, ox, -1), oy, -2)
 
     net.forward(end=end)
     dst.diff[:] = dst.data  # specify the optimization objective
+
     net.backward(start=end)
     g = src.diff[0]
-    # apply normalized ascent step to the input image
-    src.data[:] += step_size/np.abs(g).mean() * g
 
-    src.data[0] = np.roll(np.roll(src.data[0], -ox, -1), -oy, -2) # unshift image
+    # apply normalized ascent step to the input image
+    if mask is not None:
+        src.data[:] += step_size/np.abs(g).mean() * g * (1*(mask<0))
+    else :
+        src.data[:] += step_size/np.abs(g).mean() * g
+
+    if shift:
+	src.data[0] = np.roll(np.roll(src.data[0], -ox, -1), -oy, -2) # unshift image
+	# I don't think that's necessary:
+	if mask is not None:
+	    mask = np.roll(np.roll(mask, -ox, -1), -oy, -2)
 
     if clip:
         # bias = net.transformer.mean['data']
         bias = 110.0
         src.data[:] = np.clip(src.data, -bias, 255-bias)
 
-def deepdream(net, base_img, iter_n=20, octave_n=4, octave_scale=1.4, end='inception_4c/output', clip=True, filename="vis.jpg", **step_params):
+def deepdream(net, base_img, iter_n=20, octave_n=4, octave_scale=1.4, end='inception_4c/output', clip=True, filename="vis.jpg", mask_img=None, **step_params):
+
     # prepare base images for all octaves
     octaves = [preprocess(net, base_img)]
+    if mask_img is not None:
+	masks = [preprocess(net, mask_img)]
+    else:
+	masks = [preprocess(net, np.ones_like(octaves[0]))]
+
     for i in xrange(octave_n-1):
         octaves.append(nd.zoom(octaves[-1], (1, 1.0/octave_scale,1.0/octave_scale), order=1))
+        masks  .append(nd.zoom(masks  [-1], (1, 1.0/octave_scale,1.0/octave_scale), order=1))
+
+    for octave, (octave_base, mask) in enumerate(reversed(zip(octaves,masks))):
+	print octave_base.shape, mask.shape
 
     src = net.blobs['data']
     detail = np.zeros_like(octaves[-1]) # allocate image for network-produced details
-    for octave, octave_base in enumerate(octaves[::-1]):
+    for octave, (octave_base, mask) in enumerate(reversed(zip(octaves,masks))):
         h, w = octave_base.shape[-2:]
         if octave > 0:
             # upscale details from the previous octave
@@ -63,7 +84,7 @@ def deepdream(net, base_img, iter_n=20, octave_n=4, octave_scale=1.4, end='incep
         src.reshape(1,3,h,w) # resize the network's input image size
         src.data[0] = octave_base+detail
         for i in xrange(iter_n):
-            make_step(net, end=end, clip=clip, **step_params)
+            make_step(net, end=end, clip=clip, mask=mask, **step_params)
 
             # visualization
             vis = deprocess(net, src.data[0])
@@ -75,8 +96,6 @@ def deepdream(net, base_img, iter_n=20, octave_n=4, octave_scale=1.4, end='incep
         # extract details produced on the current octave
         detail = src.data[0]-octave_base
     # returning the resulting image
-    # return deprocess(net, src.data[0])
-    # Daniel: IDK why, but vis seems to be the same.
     return vis
 
 def main():
@@ -86,7 +105,16 @@ def main():
     outImageFilename = ".".join((base, end.replace("/","-"), ext))
 
     img = np.float32(PIL.Image.open(inImageFilename))
-
+    try:
+	dumbPath = inImageFilename.split("/")
+	maskImageFilename = "/".join(dumbPath[:-1])+"/mask_"+dumbPath[-1]
+	mask_img = np.float32(PIL.Image.open(maskImageFilename))
+	assert base_img.shape==mask_img.shape, "Input image and mask differ in size or color channel count." 
+    except:
+	print "Mask file not found, no masking."
+	mask_img = None
+    else:
+	print "Mask file found, masking will be applied."
 
     model_path = 'caffe/models/bvlc_googlenet/' # substitute your path here
     net_fn   = model_path + 'deploy.prototxt'
@@ -103,7 +131,7 @@ def main():
     #net.set_channel_swap('data',(2,1,0))
     #net.set_mean('data', np.float32([104.0, 116.0, 122.0]))
 
-    vis = deepdream(net, img, iter_n=20, octave_n=4, end=end, filename=outImageFilename)
+    vis = deepdream(net, img, iter_n=20, octave_n=4, end=end, mask_img=mask_img, filename=outImageFilename)
     saveImage(vis, outImageFilename)
 
 main()
